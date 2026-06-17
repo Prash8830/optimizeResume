@@ -11,8 +11,9 @@ from docx import Document
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
 
+GEMINI_MAIN_MODEL = os.getenv("GEMINI_MAIN_MODEL", "gemini-2.5-flash")
 genai.configure(api_key=GEMINI_API_KEY)
-_model = genai.GenerativeModel("gemini-2.0-flash")
+_model = genai.GenerativeModel(GEMINI_MAIN_MODEL)
 
 st.set_page_config(page_title="Profile Builder", page_icon="👤", layout="wide")
 

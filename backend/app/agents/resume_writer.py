@@ -5,7 +5,7 @@ import google.generativeai as genai
 from app.agents.state import ResumeState
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY", ""))
-_model = genai.GenerativeModel("gemini-2.0-flash")
+_model = genai.GenerativeModel(os.getenv("GEMINI_MAIN_MODEL", "gemini-2.5-flash"))
 
 SYSTEM_PROMPT = """You are a professional resume writer. Follow these rules strictly:
 

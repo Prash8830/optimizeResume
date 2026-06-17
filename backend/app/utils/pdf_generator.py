@@ -1,93 +1,68 @@
-import re
+import io
+
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, HRFlowable
+from reportlab.lib.enums import TA_LEFT
 
 
 def generate_pdf(resume_text: str, role_title: str = "Resume") -> bytes:
-    """Convert plain-text resume to ATS-safe PDF via WeasyPrint."""
-    from weasyprint import HTML
+    buf = io.BytesIO()
+    doc = SimpleDocTemplate(
+        buf,
+        pagesize=A4,
+        leftMargin=0.7 * inch,
+        rightMargin=0.7 * inch,
+        topMargin=0.6 * inch,
+        bottomMargin=0.6 * inch,
+    )
 
-    html = _resume_text_to_html(resume_text, role_title)
-    return HTML(string=html).write_pdf()
+    styles = getSampleStyleSheet()
+    name_style = ParagraphStyle("name", fontSize=16, fontName="Helvetica-Bold", spaceAfter=4, textColor=colors.HexColor("#1a1a2e"))
+    section_style = ParagraphStyle("section", fontSize=10, fontName="Helvetica-Bold", spaceBefore=8, spaceAfter=2, textColor=colors.HexColor("#1a1a2e"), textTransform="uppercase")
+    body_style = ParagraphStyle("body", fontSize=9, fontName="Helvetica", spaceAfter=2, leading=13, alignment=TA_LEFT)
 
+    SECTION_HEADERS = {"SUMMARY", "EXPERIENCE", "PROJECTS", "TECHNICAL SKILLS", "SKILLS", "EDUCATION"}
 
-def _resume_text_to_html(text: str, role_title: str) -> str:
-    """Convert plain text resume (section-labeled) to clean HTML for PDF."""
-    sections = _parse_sections(text)
+    story = []
+    story.append(Paragraph(role_title, name_style))
+    story.append(Spacer(1, 4))
 
-    body_parts = []
-    for section, content in sections.items():
-        body_parts.append(f'<div class="section"><h2>{section}</h2>')
-        for line in content:
-            if line.strip():
-                body_parts.append(f'<p>{line.strip()}</p>')
-        body_parts.append("</div>")
+    sections = _parse_sections(resume_text)
+    for section, lines in sections.items():
+        if section != "OVERVIEW":
+            story.append(HRFlowable(width="100%", thickness=0.5, color=colors.HexColor("#cccccc"), spaceAfter=2))
+            story.append(Paragraph(section, section_style))
 
-    body_html = "\n".join(body_parts)
+        for line in lines:
+            stripped = line.strip()
+            if stripped:
+                # Escape special XML characters for ReportLab
+                safe = stripped.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                story.append(Paragraph(safe, body_style))
 
-    return f"""<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<style>
-  body {{
-    font-family: Arial, sans-serif;
-    font-size: 10pt;
-    margin: 0.6in;
-    color: #1a1a1a;
-    line-height: 1.4;
-  }}
-  h1 {{
-    font-size: 16pt;
-    margin-bottom: 2px;
-    color: #1a1a2e;
-  }}
-  h2 {{
-    font-size: 11pt;
-    font-weight: bold;
-    text-transform: uppercase;
-    border-bottom: 1px solid #ccc;
-    padding-bottom: 2px;
-    margin-top: 12px;
-    margin-bottom: 4px;
-    letter-spacing: 0.5px;
-    color: #1a1a2e;
-  }}
-  p {{
-    margin: 2px 0;
-    font-size: 10pt;
-  }}
-  .section {{
-    margin-bottom: 8px;
-  }}
-  @page {{
-    size: A4;
-    margin: 0.6in;
-  }}
-</style>
-</head>
-<body>
-<h1>{role_title}</h1>
-{body_html}
-</body>
-</html>"""
+    doc.build(story)
+    return buf.getvalue()
 
 
 def _parse_sections(text: str) -> dict[str, list[str]]:
-    section_headers = ["SUMMARY", "EXPERIENCE", "PROJECTS", "TECHNICAL SKILLS", "SKILLS", "EDUCATION"]
+    SECTION_HEADERS = {"SUMMARY", "EXPERIENCE", "PROJECTS", "TECHNICAL SKILLS", "SKILLS", "EDUCATION"}
     sections: dict[str, list[str]] = {}
-    current_section = "OVERVIEW"
-    current_lines: list[str] = []
+    current = "OVERVIEW"
+    lines: list[str] = []
 
     for line in text.split("\n"):
         upper = line.strip().upper()
-        if upper in section_headers:
-            if current_lines:
-                sections[current_section] = current_lines
-            current_section = upper
-            current_lines = []
+        if upper in SECTION_HEADERS:
+            if lines:
+                sections[current] = lines
+            current = upper
+            lines = []
         else:
-            current_lines.append(line)
+            lines.append(line)
 
-    if current_lines:
-        sections[current_section] = current_lines
-
+    if lines:
+        sections[current] = lines
     return sections

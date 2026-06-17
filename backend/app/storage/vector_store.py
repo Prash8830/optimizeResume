@@ -7,6 +7,7 @@ import google.generativeai as genai
 
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./chroma_db")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+EMBED_MODEL = os.getenv("GEMINI_EMBED_MODEL", "models/gemini-embedding-001")
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -34,7 +35,7 @@ def get_collection(user_id: str):
 
 def embed_text(text: str) -> list[float]:
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model=EMBED_MODEL,
         content=text,
         task_type="retrieval_document",
     )
@@ -43,7 +44,7 @@ def embed_text(text: str) -> list[float]:
 
 def embed_query(text: str) -> list[float]:
     result = genai.embed_content(
-        model="models/text-embedding-004",
+        model=EMBED_MODEL,
         content=text,
         task_type="retrieval_query",
     )

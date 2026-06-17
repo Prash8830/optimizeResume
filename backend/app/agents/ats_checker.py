@@ -7,7 +7,7 @@ import google.generativeai as genai
 from app.agents.state import ResumeState
 
 genai.configure(api_key=os.getenv("GEMINI_API_KEY", ""))
-_model = genai.GenerativeModel("gemini-1.5-flash-8b")
+_model = genai.GenerativeModel(os.getenv("GEMINI_FAST_MODEL", "gemini-2.5-flash"))
 
 ATS_THRESHOLD = 0.75
 MAX_ITERATIONS = 3
