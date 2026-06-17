@@ -1,0 +1,77 @@
+{
+  "LangChain": {"category": "Agentic AI", "domain": "AI/ML", "aliases": ["langchain", "lang chain"]},
+  "LangGraph": {"category": "Agentic AI", "domain": "AI/ML", "aliases": ["langgraph", "lang graph"]},
+  "AutoGen": {"category": "Agentic AI", "domain": "AI/ML", "aliases": ["autogen", "auto gen", "microsoft autogen"]},
+  "CrewAI": {"category": "Agentic AI", "domain": "AI/ML", "aliases": ["crewai", "crew ai"]},
+  "LlamaIndex": {"category": "Agentic AI", "domain": "AI/ML", "aliases": ["llamaindex", "llama index", "gpt index"]},
+  "RAG": {"category": "Agentic AI", "domain": "AI/ML", "aliases": ["rag", "retrieval augmented generation", "retrieval-augmented generation"]},
+
+  "GPT-4": {"category": "GenAI", "domain": "AI/ML", "aliases": ["gpt4", "gpt-4", "gpt 4", "openai gpt"]},
+  "GPT-3.5": {"category": "GenAI", "domain": "AI/ML", "aliases": ["gpt3.5", "gpt-3.5", "chatgpt"]},
+  "Claude": {"category": "GenAI", "domain": "AI/ML", "aliases": ["claude", "anthropic claude"]},
+  "Gemini": {"category": "GenAI", "domain": "AI/ML", "aliases": ["gemini", "google gemini", "bard"]},
+  "Llama": {"category": "GenAI", "domain": "AI/ML", "aliases": ["llama", "llama2", "llama 2", "meta llama"]},
+  "Mistral": {"category": "GenAI", "domain": "AI/ML", "aliases": ["mistral", "mistral ai"]},
+  "Prompt Engineering": {"category": "GenAI", "domain": "AI/ML", "aliases": ["prompt engineering", "prompting", "few-shot", "chain of thought"]},
+  "Fine-tuning": {"category": "GenAI", "domain": "AI/ML", "aliases": ["fine tuning", "fine-tuning", "finetuning", "lora", "qlora", "rlhf"]},
+
+  "Rasa": {"category": "Conversational AI", "domain": "AI/ML", "aliases": ["rasa", "rasa nlu", "rasa core"]},
+  "Dialogflow": {"category": "Conversational AI", "domain": "AI/ML", "aliases": ["dialogflow", "google dialogflow"]},
+  "Botpress": {"category": "Conversational AI", "domain": "AI/ML", "aliases": ["botpress"]},
+  "Chatbot Development": {"category": "Conversational AI", "domain": "AI/ML", "aliases": ["chatbot", "conversational ai", "conversational agent", "dialogue system"]},
+  "NLU": {"category": "Conversational AI", "domain": "AI/ML", "aliases": ["nlu", "natural language understanding", "intent classification", "entity extraction"]},
+  "NLP": {"category": "Conversational AI", "domain": "AI/ML", "aliases": ["nlp", "natural language processing", "text processing"]},
+
+  "TensorFlow": {"category": "Machine Learning", "domain": "AI/ML", "aliases": ["tensorflow", "tf", "keras"]},
+  "PyTorch": {"category": "Machine Learning", "domain": "AI/ML", "aliases": ["pytorch", "torch"]},
+  "Scikit-learn": {"category": "Machine Learning", "domain": "AI/ML", "aliases": ["scikit-learn", "sklearn", "scikit learn"]},
+  "XGBoost": {"category": "Machine Learning", "domain": "AI/ML", "aliases": ["xgboost", "xgb", "gradient boosting"]},
+  "Computer Vision": {"category": "Machine Learning", "domain": "AI/ML", "aliases": ["computer vision", "cv", "image recognition", "object detection", "opencv"]},
+  "Transformers": {"category": "Machine Learning", "domain": "AI/ML", "aliases": ["transformers", "hugging face", "huggingface", "bert", "roberta", "t5"]},
+
+  "Python": {"category": "Programming", "domain": "Engineering", "aliases": ["python", "python3", "py"]},
+  "JavaScript": {"category": "Programming", "domain": "Engineering", "aliases": ["javascript", "js", "es6", "es2015"]},
+  "TypeScript": {"category": "Programming", "domain": "Engineering", "aliases": ["typescript", "ts"]},
+  "Java": {"category": "Programming", "domain": "Engineering", "aliases": ["java", "jvm"]},
+  "Go": {"category": "Programming", "domain": "Engineering", "aliases": ["go", "golang"]},
+  "Rust": {"category": "Programming", "domain": "Engineering", "aliases": ["rust", "rust lang"]},
+  "SQL": {"category": "Programming", "domain": "Engineering", "aliases": ["sql", "mysql", "postgresql", "postgres", "sqlite"]},
+
+  "FastAPI": {"category": "Backend", "domain": "Engineering", "aliases": ["fastapi", "fast api"]},
+  "Django": {"category": "Backend", "domain": "Engineering", "aliases": ["django", "drf", "django rest framework"]},
+  "Flask": {"category": "Backend", "domain": "Engineering", "aliases": ["flask"]},
+  "Node.js": {"category": "Backend", "domain": "Engineering", "aliases": ["node", "node.js", "nodejs", "express", "expressjs"]},
+  "REST API": {"category": "Backend", "domain": "Engineering", "aliases": ["rest", "rest api", "restful", "api design"]},
+  "GraphQL": {"category": "Backend", "domain": "Engineering", "aliases": ["graphql", "graph ql"]},
+  "Microservices": {"category": "Backend", "domain": "Engineering", "aliases": ["microservices", "micro services", "service oriented"]},
+
+  "React": {"category": "Frontend", "domain": "Engineering", "aliases": ["react", "reactjs", "react.js"]},
+  "Next.js": {"category": "Frontend", "domain": "Engineering", "aliases": ["nextjs", "next.js", "next js"]},
+  "Vue": {"category": "Frontend", "domain": "Engineering", "aliases": ["vue", "vuejs", "vue.js"]},
+  "Streamlit": {"category": "Frontend", "domain": "Engineering", "aliases": ["streamlit"]},
+
+  "AWS": {"category": "Cloud", "domain": "Infrastructure", "aliases": ["aws", "amazon web services", "ec2", "s3", "lambda", "sagemaker"]},
+  "GCP": {"category": "Cloud", "domain": "Infrastructure", "aliases": ["gcp", "google cloud", "google cloud platform", "bigquery", "vertex ai"]},
+  "Azure": {"category": "Cloud", "domain": "Infrastructure", "aliases": ["azure", "microsoft azure", "azure ml"]},
+
+  "Docker": {"category": "DevOps", "domain": "Infrastructure", "aliases": ["docker", "dockerfile", "containerization"]},
+  "Kubernetes": {"category": "DevOps", "domain": "Infrastructure", "aliases": ["kubernetes", "k8s", "kubectl", "helm"]},
+  "CI/CD": {"category": "DevOps", "domain": "Infrastructure", "aliases": ["ci/cd", "cicd", "github actions", "gitlab ci", "jenkins", "pipeline"]},
+  "MLOps": {"category": "DevOps", "domain": "Infrastructure", "aliases": ["mlops", "ml ops", "mlflow", "kubeflow", "model deployment", "model serving"]},
+
+  "PostgreSQL": {"category": "Databases", "domain": "Engineering", "aliases": ["postgresql", "postgres", "psql"]},
+  "MongoDB": {"category": "Databases", "domain": "Engineering", "aliases": ["mongodb", "mongo"]},
+  "Redis": {"category": "Databases", "domain": "Engineering", "aliases": ["redis", "redis cache"]},
+  "ChromaDB": {"category": "Databases", "domain": "Engineering", "aliases": ["chromadb", "chroma"]},
+  "Pinecone": {"category": "Databases", "domain": "Engineering", "aliases": ["pinecone"]},
+  "Weaviate": {"category": "Databases", "domain": "Engineering", "aliases": ["weaviate"]},
+  "Vector Database": {"category": "Databases", "domain": "Engineering", "aliases": ["vector db", "vector database", "embeddings store"]},
+
+  "Git": {"category": "Tools", "domain": "Engineering", "aliases": ["git", "github", "gitlab", "version control"]},
+  "Linux": {"category": "Tools", "domain": "Infrastructure", "aliases": ["linux", "unix", "bash", "shell scripting"]},
+  "Jupyter": {"category": "Tools", "domain": "AI/ML", "aliases": ["jupyter", "jupyter notebook", "jupyter lab", "ipython"]},
+
+  "Communication": {"category": "Soft Skills", "domain": "Professional", "aliases": ["communication", "presentation", "stakeholder management"]},
+  "Problem Solving": {"category": "Soft Skills", "domain": "Professional", "aliases": ["problem solving", "analytical thinking", "critical thinking"]},
+  "Team Collaboration": {"category": "Soft Skills", "domain": "Professional", "aliases": ["teamwork", "collaboration", "cross-functional"]}
+}
