@@ -10,7 +10,21 @@ from app.storage.database import init_db
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await _ensure_default_user()
     yield
+
+
+async def _ensure_default_user():
+    from sqlalchemy import select
+    from app.storage.database import AsyncSessionLocal
+    from app.models.user import User
+    from app.utils.auth_dep import DEFAULT_USER_ID
+
+    async with AsyncSessionLocal() as db:
+        result = await db.execute(select(User).where(User.id == DEFAULT_USER_ID))
+        if not result.scalar_one_or_none():
+            db.add(User(id=DEFAULT_USER_ID, email="default@optimizeresume.local", hashed_password=""))
+            await db.commit()
 
 
 app = FastAPI(

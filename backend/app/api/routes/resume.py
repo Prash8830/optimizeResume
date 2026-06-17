@@ -5,20 +5,18 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+
 from app.agents.graph import build_graph
 from app.agents.state import ResumeState
 from app.models.resume import GenerateRequest, ResumeVersion, ResumeVersionOut
 from app.storage.database import get_db
-from app.utils.auth_dep import get_current_user_id
+from app.utils.auth_dep import get_current_user_id, DEFAULT_USER_ID
 
 router = APIRouter()
 
 
 @router.post("/generate")
-async def generate_resume(
-    body: GenerateRequest,
-    user_id: str = Depends(get_current_user_id),
-):
+async def generate_resume(body: GenerateRequest):
     """
     Triggers the LangGraph pipeline and streams progress via SSE.
     Each agent node emits a progress event so the Streamlit UI can show live updates.
@@ -29,7 +27,7 @@ async def generate_resume(
             job_description=body.job_description,
             company=body.company or "",
             role_title=body.role_title or "",
-            user_id=user_id,
+            user_id=DEFAULT_USER_ID,
             jd_analysis={},
             scored_chunks=[],
             selected_content={},
@@ -73,30 +71,18 @@ async def generate_resume(
 
 
 @router.get("/versions", response_model=list[ResumeVersionOut])
-async def list_versions(
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
-):
+async def list_versions(db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(ResumeVersion)
-        .where(ResumeVersion.user_id == user_id)
+        .where(ResumeVersion.user_id == DEFAULT_USER_ID)
         .order_by(ResumeVersion.created_at.desc())
     )
     return result.scalars().all()
 
 
 @router.get("/versions/{version_id}", response_model=ResumeVersionOut)
-async def get_version(
-    version_id: str,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
-):
-    result = await db.execute(
-        select(ResumeVersion).where(
-            ResumeVersion.id == version_id,
-            ResumeVersion.user_id == user_id,
-        )
-    )
+async def get_version(version_id: str, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(ResumeVersion).where(ResumeVersion.id == version_id))
     version = result.scalar_one_or_none()
     if not version:
         from fastapi import HTTPException

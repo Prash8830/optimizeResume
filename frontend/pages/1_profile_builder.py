@@ -7,16 +7,8 @@ BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 
 st.set_page_config(page_title="Profile Builder", page_icon="👤", layout="wide")
 
-if not st.session_state.get("token"):
-    st.warning("Please login first.")
-    st.stop()
-
 st.title("Master Profile Builder")
-st.caption("This is your complete experience database. Fill it once — the AI selects what to show per JD.")
-
-
-def auth_headers():
-    return {"Authorization": f"Bearer {st.session_state.token}"}
+st.caption("Your complete experience database. Fill it once — the AI selects what to show per JD.")
 
 
 # ── BASIC INFO ──────────────────────────────────────────
@@ -82,7 +74,9 @@ for i, skill in enumerate(st.session_state.skills):
         st.session_state.skills[i]["name"] = st.text_input("Skill", value=skill.get("name", ""), key=f"s_name_{i}")
     with s_col2:
         st.session_state.skills[i]["category"] = st.selectbox(
-            "Category", ["Agentic AI", "GenAI", "Conversational AI", "Machine Learning", "Programming", "Backend", "Frontend", "Cloud", "DevOps", "Databases", "Tools", "Soft Skills"],
+            "Category",
+            ["Agentic AI", "GenAI", "Conversational AI", "Machine Learning", "Programming",
+             "Backend", "Frontend", "Cloud", "DevOps", "Databases", "Tools", "Soft Skills"],
             key=f"s_cat_{i}",
         )
     with s_col3:
@@ -139,15 +133,19 @@ if st.button("Save & Index Profile", type="primary", use_container_width=True):
         "projects": [p for p in st.session_state.projects if p.get("title")],
         "skills": [s for s in st.session_state.skills if s.get("name")],
         "experiences": [e for e in st.session_state.experiences if e.get("company")],
-        "education": [{"degree": edu_degree, "institution": edu_institution, "year": edu_year,
-                       "relevant_coursework": [c.strip() for c in edu_coursework_raw.split(",") if c.strip()]}],
+        "education": [{
+            "degree": edu_degree,
+            "institution": edu_institution,
+            "year": edu_year,
+            "relevant_coursework": [c.strip() for c in edu_coursework_raw.split(",") if c.strip()],
+        }],
     }
     with st.spinner("Saving and indexing your profile into ChromaDB..."):
         try:
-            resp = requests.post(f"{BACKEND_URL}/profile/", json=payload, headers=auth_headers(), timeout=60)
+            resp = requests.post(f"{BACKEND_URL}/profile/", json=payload, timeout=60)
             if resp.status_code == 201:
-                st.success("Profile saved and indexed! You're ready to generate resumes.")
+                st.success("Profile saved and indexed! Go to Generate Resume to create your first resume.")
             else:
-                st.error(f"Error: {resp.json()}")
+                st.error(f"Error: {resp.text}")
         except Exception as e:
             st.error(f"Backend error: {e}")

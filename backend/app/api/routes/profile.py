@@ -8,13 +8,14 @@ from app.models.profile import (
 )
 from app.storage.database import get_db
 from app.storage.vector_store import index_user_profile
-from app.utils.auth_dep import get_current_user_id
+from app.utils.auth_dep import DEFAULT_USER_ID
 
 router = APIRouter()
 
 
 @router.get("/")
-async def get_profile(user_id: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
+async def get_profile(db: AsyncSession = Depends(get_db)):
+    user_id = DEFAULT_USER_ID
     result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == user_id))
     profile = result.scalar_one_or_none()
     if not profile:
@@ -35,11 +36,8 @@ async def get_profile(user_id: str = Depends(get_current_user_id), db: AsyncSess
 
 
 @router.post("/", status_code=201)
-async def save_profile(
-    body: ProfileIn,
-    user_id: str = Depends(get_current_user_id),
-    db: AsyncSession = Depends(get_db),
-):
+async def save_profile(body: ProfileIn, db: AsyncSession = Depends(get_db)):
+    user_id = DEFAULT_USER_ID
     # Upsert master profile
     result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == user_id))
     profile = result.scalar_one_or_none()
@@ -84,7 +82,8 @@ async def save_profile(
 
 
 @router.post("/index")
-async def reindex_profile(user_id: str = Depends(get_current_user_id), db: AsyncSession = Depends(get_db)):
+async def reindex_profile(db: AsyncSession = Depends(get_db)):
+    user_id = DEFAULT_USER_ID
     """Re-embed the entire profile into ChromaDB (use after bulk edits)."""
     result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == user_id))
     profile = result.scalar_one_or_none()
