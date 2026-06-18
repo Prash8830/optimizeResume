@@ -41,6 +41,9 @@ export const api = {
   getPdfUrl: (id: string) => `${BASE}/export/pdf/${id}`,
   getDocxUrl: (id: string) => `${BASE}/export/docx/${id}`,
 
+  // Profile form data for auto-fill
+  getFormData: () => req<Record<string, string>>('/profile/form-data'),
+
   // Jobs
   listJobs: () => req<JobApplication[]>('/jobs/'),
   createJob: (data: {

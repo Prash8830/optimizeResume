@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   Briefcase, ExternalLink, Plus, Trash2, FileText,
-  Sparkles, X, ChevronRight, Check,
+  Sparkles, X, ChevronRight, Check, Zap, User, Mail,
+  Phone, Linkedin, Github, Copy, CheckCheck,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { api } from '../lib/api'
@@ -75,6 +76,138 @@ function StatusBadge({ status }: { status: JobStatus }) {
     >
       {c.label}
     </span>
+  )
+}
+
+// ── Assisted Apply Modal ───────────────────────────────────────────────────
+
+function AssistedApplyModal({ job, onClose }: { job: JobApplication; onClose: () => void }) {
+  const [step, setStep] = useState<'overview' | 'ready'>('overview')
+  const [copied, setCopied] = useState(false)
+
+  const { data: formData } = useQuery<Record<string, string>>({
+    queryKey: ['form-data'],
+    queryFn: () => api.getFormData(),
+  })
+
+  const fields = formData ? [
+    { icon: User,     label: 'Full Name',       value: formData.full_name },
+    { icon: Mail,     label: 'Email',            value: formData.email },
+    { icon: Phone,    label: 'Phone',            value: formData.phone },
+    { icon: Linkedin, label: 'LinkedIn',         value: formData.linkedin },
+    { icon: Github,   label: 'GitHub',           value: formData.github },
+    { icon: Briefcase,label: 'Current Company',  value: formData.current_company },
+    { icon: Briefcase,label: 'Current Role',     value: formData.current_role },
+    { icon: User,     label: 'Degree',           value: formData.degree },
+    { icon: User,     label: 'Institution',      value: formData.institution },
+    { icon: User,     label: 'Graduation Year',  value: formData.graduation_year },
+  ] : []
+
+  const command = `Apply for ${job.role_title} at ${job.company}${job.job_url ? ` — URL: ${job.job_url}` : ''} — I'm logged in, please fill the form`
+
+  const copyCommand = () => {
+    void navigator.clipboard.writeText(command)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-surface border border-border rounded-2xl w-full max-w-xl shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Zap size={16} className="text-accent" />
+            <h2 className="text-sm font-bold text-primary">Assisted Apply</h2>
+          </div>
+          <button onClick={onClose} className="btn-ghost p-1.5 rounded-lg"><X size={16} /></button>
+        </div>
+
+        <div className="p-6 space-y-5">
+          {/* Job info */}
+          <div className="flex items-center gap-3 bg-elevated border border-border rounded-xl px-4 py-3">
+            <Briefcase size={16} className="text-accent flex-shrink-0" />
+            <div>
+              <p className="text-sm font-bold text-primary">{job.role_title}</p>
+              <p className="text-xs text-muted">{job.company}{job.job_url && ` · ${job.job_url}`}</p>
+            </div>
+          </div>
+
+          {/* How it works */}
+          <div className="space-y-2">
+            {[
+              { n: '1', text: 'Open the job URL in your browser', done: true },
+              { n: '2', text: 'Log in to your account (only you can do this)', done: false },
+              { n: '3', text: 'Tell Claude to start — I fill name, email, phone, LinkedIn, resume upload', done: false },
+              { n: '4', text: 'You review and click Submit', done: false },
+            ].map(step => (
+              <div key={step.n} className="flex items-start gap-3">
+                <div className={clsx(
+                  'w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-bold mt-0.5',
+                  step.done ? 'bg-success/20 text-success' : 'bg-elevated border border-border text-muted'
+                )}>
+                  {step.done ? <Check size={10} /> : step.n}
+                </div>
+                <p className="text-xs text-secondary leading-relaxed">{step.text}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* Profile data preview */}
+          <div>
+            <p className="text-xs font-bold text-primary uppercase tracking-wider mb-2">
+              I'll auto-fill these fields
+            </p>
+            <div className="grid grid-cols-2 gap-1.5">
+              {fields.map(({ icon: Icon, label, value }) => (
+                <div key={label} className="flex items-center gap-2 bg-elevated border border-border rounded-lg px-2.5 py-1.5">
+                  <Icon size={11} className="text-muted flex-shrink-0" />
+                  <div className="min-w-0">
+                    <p className="text-[9px] text-muted uppercase tracking-wider">{label}</p>
+                    <p className="text-[10px] text-secondary truncate font-medium">{value || '—'}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted mt-2">
+              + resume PDF will be uploaded automatically from your latest generated version
+            </p>
+          </div>
+
+          {/* Step 1 — open job URL */}
+          {job.job_url && (
+            <a
+              href={job.job_url}
+              target="_blank"
+              rel="noreferrer"
+              className="btn-secondary w-full flex items-center justify-center gap-2 text-sm"
+            >
+              <ExternalLink size={14} />
+              Open Job Listing (Step 1)
+            </a>
+          )}
+
+          {/* Step 3 — copy command */}
+          <div className="space-y-2">
+            <p className="text-xs text-secondary">
+              After logging in, copy this command and paste it in the Claude chat:
+            </p>
+            <div className="bg-elevated border border-border rounded-xl px-4 py-3 flex items-center gap-3">
+              <code className="text-xs text-accent flex-1 leading-relaxed">{command}</code>
+              <button
+                onClick={copyCommand}
+                className="flex-shrink-0 btn-ghost p-1.5 rounded-lg"
+              >
+                {copied ? <CheckCheck size={14} className="text-success" /> : <Copy size={14} />}
+              </button>
+            </div>
+            <p className="text-[10px] text-muted">
+              Claude will then navigate to the form, fill every field it can, and stop before Submit.
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -196,6 +329,7 @@ function JobCard({ job }: { job: JobApplication }) {
   const queryClient = useQueryClient()
   const navigate = useNavigate()
   const [showStatusMenu, setShowStatusMenu] = useState(false)
+  const [showAssistedApply, setShowAssistedApply] = useState(false)
 
   const updateMutation = useMutation({
     mutationFn: (status: JobStatus) => api.updateJob(job.id, { status }),
@@ -214,6 +348,7 @@ function JobCard({ job }: { job: JobApplication }) {
   const accentColor = company?.color ?? '#e05252'
 
   return (
+    <>
     <div className="card p-4 space-y-3 hover:border-accent/20 transition-colors relative">
       {/* Header */}
       <div className="flex items-start justify-between gap-2">
@@ -238,6 +373,15 @@ function JobCard({ job }: { job: JobApplication }) {
 
       {/* Actions */}
       <div className="flex items-center gap-2 pt-1 border-t border-border/50">
+        {/* Assisted Apply — primary action */}
+        <button
+          onClick={() => setShowAssistedApply(true)}
+          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded-lg bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-colors"
+        >
+          <Zap size={11} />
+          Auto Fill
+        </button>
+
         {job.job_url && (
           <a
             href={job.job_url}
@@ -246,7 +390,7 @@ function JobCard({ job }: { job: JobApplication }) {
             className="btn-ghost py-1 px-2 text-xs flex items-center gap-1 rounded-lg"
           >
             <ExternalLink size={11} />
-            Open Job
+            Job
           </a>
         )}
 
@@ -307,6 +451,11 @@ function JobCard({ job }: { job: JobApplication }) {
         </div>
       </div>
     </div>
+
+    {showAssistedApply && (
+      <AssistedApplyModal job={job} onClose={() => setShowAssistedApply(false)} />
+    )}
+    </>
   )
 }
 

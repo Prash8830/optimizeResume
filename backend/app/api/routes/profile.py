@@ -150,6 +150,40 @@ async def save_profile(body: ProfileIn, db: AsyncSession = Depends(get_db)):
     return {"message": "Profile saved and indexed", "profile_id": profile.id}
 
 
+@router.get("/form-data")
+async def get_form_data(db: AsyncSession = Depends(get_db)):
+    """Flat key-value profile optimised for auto-filling job application forms."""
+    user_id = DEFAULT_USER_ID
+    result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == user_id))
+    profile = result.scalar_one_or_none()
+    if not profile:
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    experiences = (await db.execute(select(Experience).where(Experience.profile_id == profile.id))).scalars().all()
+    education_list = (await db.execute(select(Education).where(Education.profile_id == profile.id))).scalars().all()
+
+    current_exp = experiences[0] if experiences else None
+    current_edu = education_list[0] if education_list else None
+
+    return {
+        "full_name": profile.name or "",
+        "first_name": (profile.name or "").split()[0],
+        "last_name": " ".join((profile.name or "").split()[1:]),
+        "email": profile.email or "",
+        "phone": profile.phone or "",
+        "linkedin": profile.linkedin or "",
+        "github": profile.github or "",
+        "current_company": current_exp.company if current_exp else "",
+        "current_role": current_exp.role if current_exp else "",
+        "current_start_date": current_exp.start_date if current_exp else "",
+        "degree": current_edu.degree if current_edu else "",
+        "institution": current_edu.institution if current_edu else "",
+        "graduation_year": current_edu.year if current_edu else "",
+        "summary": profile.summary or "",
+        "years_experience": "2",
+    }
+
+
 @router.post("/index")
 async def reindex_profile(db: AsyncSession = Depends(get_db)):
     user_id = DEFAULT_USER_ID
