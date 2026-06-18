@@ -1,16 +1,22 @@
-import { useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Sparkles, Lightbulb, AlertCircle } from 'lucide-react'
-import { streamGenerate } from '../lib/api'
+import { useState, useCallback, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
+import { Sparkles, Lightbulb, AlertCircle, Briefcase } from 'lucide-react'
+import { streamGenerate, api } from '../lib/api'
 import PipelineProgress from '../components/PipelineProgress'
 
 type NodeStatus = 'waiting' | 'active' | 'done'
 
+interface LocationState { jd?: string; company?: string; role?: string; jobId?: string }
+
 export default function GenerateResume() {
   const navigate = useNavigate()
-  const [company, setCompany] = useState('')
-  const [roleTitle, setRoleTitle] = useState('')
-  const [jobDescription, setJobDescription] = useState('')
+  const location = useLocation()
+  const state = (location.state ?? {}) as LocationState
+
+  const [company, setCompany] = useState(state.company ?? '')
+  const [roleTitle, setRoleTitle] = useState(state.role ?? '')
+  const [jobDescription, setJobDescription] = useState(state.jd ?? '')
+  const [jobId] = useState<string | undefined>(state.jobId)
   const [isGenerating, setIsGenerating] = useState(false)
   const [nodeStates, setNodeStates] = useState<Record<string, NodeStatus>>({})
   const [atsScore, setAtsScore] = useState<number | undefined>()
@@ -43,6 +49,10 @@ export default function GenerateResume() {
           const versionId = event.resume_version_id as string | undefined
           setIsGenerating(false)
           if (versionId) {
+            // Link resume back to tracked job if navigated from Job Tracker
+            if (jobId) {
+              void api.updateJob(jobId, { status: 'applied', resume_version_id: versionId })
+            }
             navigate(`/results/${versionId}`)
           }
         }
@@ -69,6 +79,13 @@ export default function GenerateResume() {
           Paste a job description and our 6-node pipeline will tailor your resume.
         </p>
       </div>
+
+      {jobId && (
+        <div className="flex items-center gap-2 bg-accent/5 border border-accent/20 rounded-xl px-4 py-2.5 text-xs text-accent">
+          <Briefcase size={13} />
+          Generating for tracked job — resume will be linked automatically after generation.
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-6">
         {/* Form */}

@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { Home, User, Sparkles, Clock, BarChart3, type LucideProps } from 'lucide-react'
+import { Home, User, Sparkles, Clock, BarChart3, Briefcase, type LucideProps } from 'lucide-react'
 import { clsx } from 'clsx'
 import type { ForwardRefExoticComponent, RefAttributes } from 'react'
 
@@ -10,6 +10,7 @@ const NAV: Array<{ to: string; icon: LucideIcon; label: string }> = [
   { to: '/profile', icon: User, label: 'Profile Builder' },
   { to: '/generate', icon: Sparkles, label: 'Generate Resume' },
   { to: '/history', icon: Clock, label: 'History' },
+  { to: '/jobs', icon: Briefcase, label: 'Job Tracker' },
 ]
 
 const ADMIN_NAV: Array<{ to: string; icon: LucideIcon; label: string }> = [

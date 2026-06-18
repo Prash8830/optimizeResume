@@ -12,6 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, profile, resume, export
 from app.api.routes.admin import router as admin_router
+from app.api.routes.jobs import router as jobs_router
+from app.models import job as _job_models  # ensure table is registered  # noqa: F401
 from app.storage.database import init_db
 
 
@@ -55,6 +57,7 @@ app.include_router(profile.router, prefix="/profile", tags=["profile"])
 app.include_router(resume.router, prefix="/resume", tags=["resume"])
 app.include_router(export.router, prefix="/export", tags=["export"])
 app.include_router(admin_router, prefix="/admin", tags=["admin"])
+app.include_router(jobs_router, prefix="/jobs", tags=["jobs"])
 
 
 @app.get("/health")

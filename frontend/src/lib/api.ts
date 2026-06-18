@@ -1,4 +1,4 @@
-import type { AdminStats, ResumeVersion, LLMLog } from '../types'
+import type { AdminStats, ResumeVersion, LLMLog, JobApplication, JobStatus } from '../types'
 
 const BASE = '/api'
 
@@ -40,6 +40,16 @@ export const api = {
   // Export
   getPdfUrl: (id: string) => `${BASE}/export/pdf/${id}`,
   getDocxUrl: (id: string) => `${BASE}/export/docx/${id}`,
+
+  // Jobs
+  listJobs: () => req<JobApplication[]>('/jobs/'),
+  createJob: (data: {
+    company: string; role_title: string; job_url?: string
+    jd_text?: string; status?: JobStatus; notes?: string
+  }) => req<JobApplication>('/jobs/', { method: 'POST', body: JSON.stringify(data) }),
+  updateJob: (id: string, data: { status: JobStatus; notes?: string; resume_version_id?: string }) =>
+    req<JobApplication>(`/jobs/${id}`, { method: 'PATCH', body: JSON.stringify(data) }),
+  deleteJob: (id: string) => fetch(`${BASE}/jobs/${id}`, { method: 'DELETE' }),
 
   // Admin
   getAdminStats: () => req<AdminStats>('/admin/stats'),

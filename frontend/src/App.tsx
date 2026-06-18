@@ -6,6 +6,7 @@ import GenerateResume from './pages/GenerateResume'
 import Results from './pages/Results'
 import History from './pages/History'
 import Admin from './pages/Admin'
+import Jobs from './pages/Jobs'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
         <Route path="/results/:versionId" element={<Results />} />
         <Route path="/results" element={<Results />} />
         <Route path="/history" element={<History />} />
+        <Route path="/jobs" element={<Jobs />} />
         <Route path="/admin" element={<Admin />} />
       </Route>
     </Routes>

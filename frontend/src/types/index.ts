@@ -37,6 +37,21 @@ export interface PipelineEvent {
   optimization_report?: OptimizationReport;
 }
 
+export type JobStatus = 'bookmarked' | 'applied' | 'interview' | 'offer' | 'rejected'
+
+export interface JobApplication {
+  id: string
+  company: string
+  role_title: string
+  job_url: string | null
+  jd_text: string | null
+  resume_version_id: string | null
+  status: JobStatus
+  notes: string | null
+  applied_at: string | null
+  created_at: string
+}
+
 export interface AdminStats {
   total_24h: number;
   total_7d: number;
