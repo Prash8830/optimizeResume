@@ -7,13 +7,73 @@ import pdfplumber
 import requests
 import streamlit as st
 from docx import Document
+from groq import Groq
+from groq import RateLimitError as GroqRateLimitError
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_MODEL = os.getenv("GROQ_MAIN_MODEL", "llama-3.3-70b-versatile")
+GEMINI_MODEL = os.getenv("GEMINI_MAIN_MODEL", "gemini-2.5-flash")
 
-GEMINI_MAIN_MODEL = os.getenv("GEMINI_MAIN_MODEL", "gemini-2.5-flash")
+_groq = Groq(api_key=GROQ_API_KEY) if GROQ_API_KEY else None
 genai.configure(api_key=GEMINI_API_KEY)
-_model = genai.GenerativeModel(GEMINI_MAIN_MODEL)
+_gemini = genai.GenerativeModel(GEMINI_MODEL)
+
+
+def _llm_chat(system: str, messages: list[dict], temperature: float = 0.7) -> str:
+    """Route chat to Groq first, fallback to Gemini."""
+    # ── Groq ──────────────────────────────────────────────────────────────────
+    if _groq:
+        try:
+            groq_msgs = [{"role": "system", "content": system}]
+            for m in messages:
+                groq_msgs.append({"role": m["role"], "content": m["content"]})
+            resp = _groq.chat.completions.create(
+                model=GROQ_MODEL, messages=groq_msgs, temperature=temperature
+            )
+            return resp.choices[0].message.content or ""
+        except GroqRateLimitError:
+            pass
+        except Exception:
+            pass
+    # ── Gemini fallback ───────────────────────────────────────────────────────
+    history = []
+    for m in messages[:-1]:
+        history.append({"role": "user" if m["role"] == "user" else "model",
+                        "parts": [m["content"]]})
+    if not history:
+        history = [{"role": "user", "parts": ["Begin."]},
+                   {"role": "model", "parts": ["Hello! I'm ready."]}]
+    chat = _gemini.start_chat(history=history)
+    return chat.send_message(
+        system[:300] + "\n\n" + messages[-1]["content"],
+        generation_config=genai.GenerationConfig(temperature=temperature),
+    ).text
+
+
+def _llm_json(prompt: str) -> dict:
+    """Route JSON extraction to Groq first, fallback to Gemini."""
+    if _groq:
+        try:
+            resp = _groq.chat.completions.create(
+                model=GROQ_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.1,
+                response_format={"type": "json_object"},
+            )
+            return json.loads(resp.choices[0].message.content or "{}")
+        except GroqRateLimitError:
+            pass
+        except Exception:
+            pass
+    response = _gemini.generate_content(
+        prompt,
+        generation_config=genai.GenerationConfig(
+            temperature=0.1, response_mime_type="application/json"
+        ),
+    )
+    return json.loads(response.text)
 
 st.set_page_config(page_title="Profile Builder", page_icon="👤", layout="wide")
 
@@ -122,40 +182,21 @@ def parse_resume_file(uploaded_file) -> str:
 
 
 def extract_profile_json(messages: list[dict]) -> dict:
-    """Ask Gemini to convert the conversation into a structured profile JSON."""
+    """Convert conversation to structured profile JSON via Groq → Gemini fallback."""
     conversation_text = "\n".join(
         f"{'User' if m['role'] == 'user' else 'Consultant'}: {m['content']}"
         for m in messages
     )
     prompt = EXTRACT_PROFILE_PROMPT.format(conversation=conversation_text)
-    response = _model.generate_content(
-        prompt,
-        generation_config=genai.GenerationConfig(
-            temperature=0.1,
-            response_mime_type="application/json",
-        ),
-    )
-    return json.loads(response.text)
+    return _llm_json(prompt)
 
 
 def chat_with_consultant(messages: list[dict], resume_context: str = "") -> str:
-    """Send message history to Gemini and get consultant reply."""
+    """Send message history to LLM (Groq → Gemini) and get consultant reply."""
     system = CONSULTANT_SYSTEM_PROMPT
     if resume_context:
         system += f"\n\nRESUME ALREADY UPLOADED — extracted text:\n{resume_context[:3000]}"
-
-    history = []
-    for m in messages:
-        role = "user" if m["role"] == "user" else "model"
-        history.append({"role": role, "parts": [m["content"]]})
-
-    chat = _model.start_chat(history=history[:-1] if history else [])
-    response = chat.send_message(
-        history[-1]["parts"][0] if history else "Hello",
-        generation_config=genai.GenerationConfig(temperature=0.7),
-        # Pass system instruction via prepended context
-    )
-    return response.text
+    return _llm_chat(system, messages, temperature=0.7)
 
 
 def save_profile(profile: dict) -> bool:
@@ -235,12 +276,11 @@ with col_chat:
                 else "Start the conversation with your opening greeting."
             )
 
-            # Use Gemini with system prompt baked into first turn
-            response = _model.generate_content(
-                system_with_context + "\n\nNow begin: " + opening_prompt,
-                generation_config=genai.GenerationConfig(temperature=0.7),
+            opening = _llm_chat(
+                system_with_context,
+                [{"role": "user", "content": opening_prompt}],
+                temperature=0.7,
             )
-            opening = response.text
             st.session_state.chat_messages = [{"role": "assistant", "content": opening}]
             st.session_state.chat_initialized = True
             st.rerun()
@@ -275,24 +315,14 @@ with col_chat:
                     if st.session_state.resume_context:
                         system_with_context += f"\n\nRESUME CONTEXT:\n{st.session_state.resume_context[:3000]}"
 
-                    # Reconstruct history for Gemini
-                    history_for_gemini = []
-                    for m in st.session_state.chat_messages[:-1]:  # all except the last user message
-                        role = "user" if m["role"] == "user" else "model"
-                        history_for_gemini.append({"role": role, "parts": [m["content"]]})
+                    # Build message history for LLM
+                    history_msgs = []
+                    for m in st.session_state.chat_messages[:-1]:
+                        role = "user" if m["role"] == "user" else "assistant"
+                        history_msgs.append({"role": role, "content": m["content"]})
+                    history_msgs.append({"role": "user", "content": user_input})
 
-                    # Add system context to history as a leading model turn if fresh
-                    if len(history_for_gemini) == 1:
-                        history_for_gemini = [
-                            {"role": "user", "parts": ["Begin the consultation."]},
-                            {"role": "model", "parts": [history_for_gemini[0]["parts"][0]]},
-                        ]
-
-                    chat = _model.start_chat(history=history_for_gemini)
-                    reply = chat.send_message(
-                        system_with_context[:500] + "\n\n" + user_input,
-                        generation_config=genai.GenerationConfig(temperature=0.7),
-                    ).text
+                    reply = _llm_chat(system_with_context, history_msgs, temperature=0.7)
 
                 st.session_state.chat_messages.append({"role": "assistant", "content": reply})
 
