@@ -93,7 +93,7 @@ async def report_generator(state: ResumeState) -> ResumeState:
     # Prepend contact header and append education if missing
     contact_header = await _build_contact_header(state["user_id"])
     draft = state["draft_resume"]
-    if "EDUCATION" not in draft.upper():
+    if not any(line.strip().upper() == "EDUCATION" for line in draft.split("\n")):
         education_section = await _build_education_section(state["user_id"])
     else:
         education_section = ""
