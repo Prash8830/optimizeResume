@@ -1,4 +1,7 @@
+import json
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,8 +12,74 @@ from app.models.profile import (
 from app.storage.database import get_db
 from app.storage.vector_store import index_user_profile
 from app.utils.auth_dep import DEFAULT_USER_ID
+from app.utils.llm import call_llm
 
 router = APIRouter()
+
+# ── AI Profile Consultant chat ─────────────────────────────────────────────
+
+PROFILE_SYSTEM_PROMPT = """You are an expert career consultant building a user's master resume profile.
+Be warm, concise, and probe for specifics (numbers, outcomes, tech stacks).
+Ask ONE focused question at a time. Cover: basic info, work experience, projects, skills, education.
+After all sections are covered, say exactly: PROFILE_COMPLETE — then stop asking questions."""
+
+
+class ChatMessage(BaseModel):
+    role: str   # "user" or "assistant"
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage]
+    resume_context: str = ""
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    profile_complete: bool
+
+
+class ExtractRequest(BaseModel):
+    messages: list[ChatMessage]
+
+
+@router.post("/chat", response_model=ChatResponse)
+async def chat(body: ChatRequest):
+    system = PROFILE_SYSTEM_PROMPT
+    if body.resume_context:
+        system += f"\n\nRESUME CONTEXT:\n{body.resume_context[:3000]}"
+
+    msgs: list[dict] = []
+    if system:
+        msgs.append({"role": "system", "content": system})
+    for m in body.messages:
+        msgs.append({"role": m.role, "content": m.content})
+
+    # If no messages yet, just get opening message
+    if not body.messages:
+        msgs.append({"role": "user", "content": "Hello, I'd like to build my resume profile."})
+
+    reply = call_llm("", system_prompt="", temperature=0.7, endpoint="profile_chat",
+                     _messages_override=msgs)
+    return ChatResponse(reply=reply, profile_complete="PROFILE_COMPLETE" in reply)
+
+
+@router.post("/extract")
+async def extract_profile(body: ExtractRequest):
+    conversation = "\n".join(
+        f"{'User' if m.role == 'user' else 'Consultant'}: {m.content}"
+        for m in body.messages
+    )
+    prompt = f"""Extract a structured JSON profile from this conversation.
+Return ONLY valid JSON with these keys: name, email, phone, linkedin, github, summary, projects (array with title/description/tech_stack/outcomes/github_url), skills (array with name/category/proficiency), experiences (array with company/role/start_date/end_date/bullets), education (array with degree/institution/year).
+
+Conversation:
+{conversation}"""
+    result = call_llm(prompt, temperature=0.1, json_mode=True, endpoint="profile_extract")
+    try:
+        return json.loads(result)
+    except Exception:
+        return {}
 
 
 @router.get("/")

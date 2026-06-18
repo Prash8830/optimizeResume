@@ -1,9 +1,17 @@
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+# Load root .env before any module imports read os.getenv()
+load_dotenv(dotenv_path=Path(__file__).parent.parent.parent / ".env")
+
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routes import auth, profile, resume, export
+from app.api.routes.admin import router as admin_router
 from app.storage.database import init_db
 
 
@@ -36,7 +44,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8501", "http://localhost:3000"],
+    allow_origins=["http://localhost:8501", "http://localhost:3000", "http://localhost:5173", "http://localhost:5174"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -46,6 +54,7 @@ app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(profile.router, prefix="/profile", tags=["profile"])
 app.include_router(resume.router, prefix="/resume", tags=["resume"])
 app.include_router(export.router, prefix="/export", tags=["export"])
+app.include_router(admin_router, prefix="/admin", tags=["admin"])
 
 
 @app.get("/health")
