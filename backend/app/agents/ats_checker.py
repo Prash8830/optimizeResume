@@ -1,13 +1,7 @@
 import json
-import os
-import re
-
-import google.generativeai as genai
 
 from app.agents.state import ResumeState
-
-genai.configure(api_key=os.getenv("GEMINI_API_KEY", ""))
-_model = genai.GenerativeModel(os.getenv("GEMINI_FAST_MODEL", "gemini-2.5-flash"))
+from app.utils.llm import call_llm
 
 ATS_THRESHOLD = 0.75
 MAX_ITERATIONS = 3
@@ -17,12 +11,11 @@ async def ats_checker(state: ResumeState) -> ResumeState:
     resume_lower = state["draft_resume"].lower()
     required_kws = state["jd_analysis"].get("required_keywords", {})
 
-    # Local keyword scan — fast, no LLM
+    # Local keyword scan — fast, no LLM needed
     matched = set()
     missing = set()
     for kw in required_kws:
         kw_lower = kw.lower()
-        # Check direct match or stemmed match (e.g. "deploy" matches "deployment")
         if kw_lower in resume_lower or any(kw_lower[:6] in word for word in resume_lower.split()):
             matched.add(kw)
         else:
@@ -30,7 +23,7 @@ async def ats_checker(state: ResumeState) -> ResumeState:
 
     ats_score = len(matched) / len(required_kws) if required_kws else 1.0
 
-    # If below threshold and iterations remain, use LLM to find insertable keywords
+    # LLM feedback only if below threshold and iterations remain
     ats_feedback = []
     if ats_score < ATS_THRESHOLD and state.get("iteration_count", 0) < MAX_ITERATIONS and missing:
         feedback_prompt = f"""The following keywords are missing from this resume.
@@ -43,14 +36,8 @@ Resume excerpt (first 300 words):
 {" ".join(state["draft_resume"].split()[:300])}"""
 
         try:
-            resp = _model.generate_content(
-                feedback_prompt,
-                generation_config=genai.GenerationConfig(
-                    temperature=0.1,
-                    response_mime_type="application/json",
-                ),
-            )
-            feedback_data = json.loads(resp.text)
+            text = call_llm(feedback_prompt, temperature=0.1, json_mode=True, fast=True)
+            feedback_data = json.loads(text)
             ats_feedback = feedback_data.get("insertable", [])
         except Exception:
             ats_feedback = list(missing)[:5]

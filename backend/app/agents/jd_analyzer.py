@@ -1,12 +1,7 @@
 import json
-import os
-
-import google.generativeai as genai
 
 from app.agents.state import ResumeState
-
-genai.configure(api_key=os.getenv("GEMINI_API_KEY", ""))
-_model = genai.GenerativeModel(os.getenv("GEMINI_MAIN_MODEL", "gemini-2.5-flash"))
+from app.utils.llm import call_llm
 
 SYSTEM_PROMPT = """You are a precise job description analyzer. Extract structured data only.
 Return valid JSON only — no markdown, no code fences, no explanation.
@@ -38,18 +33,11 @@ async def jd_analyzer(state: ResumeState) -> ResumeState:
         job_description=state["job_description"],
     )
 
-    response = _model.generate_content(
-        [{"role": "user", "parts": [SYSTEM_PROMPT + "\n\n" + prompt]}],
-        generation_config=genai.GenerationConfig(
-            temperature=0.1,
-            response_mime_type="application/json",
-        ),
-    )
+    text = call_llm(prompt, system_prompt=SYSTEM_PROMPT, temperature=0.1, json_mode=True)
 
     try:
-        jd_analysis = json.loads(response.text)
+        jd_analysis = json.loads(text)
     except json.JSONDecodeError:
-        # Fallback: extract keywords naively from JD text
         words = state["job_description"].lower().split()
         jd_analysis = {
             "role_type": "Other",

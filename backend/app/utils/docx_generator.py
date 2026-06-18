@@ -53,7 +53,7 @@ def generate_docx(resume_text: str, role_title: str = "Resume") -> bytes:
             run = para.add_run(stripped)
             run.font.size = Pt(9.5)
             # Bold role/company lines in EXPERIENCE
-            if section_name == "EXPERIENCE" and " at " in stripped and not stripped[0].islower():
+            if section_name == "EXPERIENCE" and " at " in stripped and not stripped[0].islower() and len(stripped.split()) <= 12:
                 run.font.bold = True
                 run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x2e)
 

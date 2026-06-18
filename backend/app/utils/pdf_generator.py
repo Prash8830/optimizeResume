@@ -74,8 +74,9 @@ def generate_pdf(resume_text: str, role_title: str = "Resume") -> bytes:
             stripped = line.strip()
             if not stripped:
                 continue
-            # Bold role/company lines in EXPERIENCE (format: "Role at Company")
-            if section == "EXPERIENCE" and " at " in stripped and not stripped[0].islower():
+            # Bold role/company lines in EXPERIENCE: short line, "at" near middle, starts with capital
+            # Excludes long bullet lines that happen to contain "at" (e.g. "...at 92% accuracy")
+            if section == "EXPERIENCE" and " at " in stripped and not stripped[0].islower() and len(stripped.split()) <= 12:
                 story.append(Paragraph(_esc(stripped), role_line_style))
             else:
                 story.append(Paragraph(_esc(stripped), body_style))

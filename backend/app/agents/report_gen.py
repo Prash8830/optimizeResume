@@ -90,14 +90,33 @@ async def report_generator(state: ResumeState) -> ResumeState:
         "swappable_items": swappable,
     }
 
-    # Prepend contact header and append education if missing
+    # Prepend contact header and fix education section
     contact_header = await _build_contact_header(state["user_id"])
     draft = state["draft_resume"]
-    if not any(line.strip().upper() == "EDUCATION" for line in draft.split("\n")):
+
+    edu_lines = [l.strip() for l in draft.split("\n")]
+    has_edu_header = any(l.upper() == "EDUCATION" for l in edu_lines)
+
+    # Detect LLM filler: header present but content is empty or placeholder
+    edu_header_idx = next((i for i, l in enumerate(edu_lines) if l.upper() == "EDUCATION"), -1)
+    edu_content_after = " ".join(edu_lines[edu_header_idx + 1:edu_header_idx + 4]).lower() if edu_header_idx >= 0 else ""
+    edu_is_filler = not edu_content_after.strip() or any(
+        phrase in edu_content_after for phrase in ["no education", "not provided", "n/a", "none"]
+    )
+
+    if not has_edu_header:
+        # Section missing entirely — append from DB
         education_section = await _build_education_section(state["user_id"])
+        full_resume_text = contact_header + draft + education_section
+    elif edu_is_filler:
+        # LLM wrote filler — strip it and replace with DB data
+        real_edu = await _build_education_section(state["user_id"])
+        lines = draft.split("\n")
+        edu_line_idx = next((i for i, l in enumerate(lines) if l.strip().upper() == "EDUCATION"), -1)
+        draft_without_edu = "\n".join(lines[:edu_line_idx]).rstrip()
+        full_resume_text = contact_header + draft_without_edu + real_edu
     else:
-        education_section = ""
-    full_resume_text = contact_header + draft + education_section
+        full_resume_text = contact_header + draft
 
     # Persist to PostgreSQL
     resume_version_id = ""
