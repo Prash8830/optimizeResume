@@ -1,10 +1,49 @@
 import os
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.state import ResumeState
+from app.models.profile import Education, MasterProfile
 from app.models.resume import ResumeVersion
 from app.storage.database import AsyncSessionLocal
+
+
+async def _build_contact_header(user_id: str) -> str:
+    """Fetch profile from DB and build a HEADER block to prepend to resume text."""
+    try:
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == user_id))
+            profile = result.scalar_one_or_none()
+        if not profile:
+            return ""
+        contact_parts = [p for p in [profile.email, profile.phone, profile.linkedin, profile.github] if p]
+        name = profile.name or ""
+        contact_line = " | ".join(contact_parts)
+        return f"HEADER\n{name}\n{contact_line}\n\n"
+    except Exception:
+        return ""
+
+
+async def _build_education_section(user_id: str) -> str:
+    """Fetch education from DB and build EDUCATION section if not already in resume."""
+    try:
+        async with AsyncSessionLocal() as db:
+            prof_result = await db.execute(select(MasterProfile).where(MasterProfile.user_id == user_id))
+            profile = prof_result.scalar_one_or_none()
+            if not profile:
+                return ""
+            edu_result = await db.execute(select(Education).where(Education.profile_id == profile.id))
+            educations = edu_result.scalars().all()
+        if not educations:
+            return ""
+        lines = ["EDUCATION"]
+        for edu in educations:
+            parts = [p for p in [edu.degree, edu.institution, edu.year] if p]
+            lines.append(" | ".join(parts))
+        return "\n" + "\n".join(lines) + "\n"
+    except Exception:
+        return ""
 
 
 async def report_generator(state: ResumeState) -> ResumeState:
@@ -51,6 +90,15 @@ async def report_generator(state: ResumeState) -> ResumeState:
         "swappable_items": swappable,
     }
 
+    # Prepend contact header and append education if missing
+    contact_header = await _build_contact_header(state["user_id"])
+    draft = state["draft_resume"]
+    if "EDUCATION" not in draft.upper():
+        education_section = await _build_education_section(state["user_id"])
+    else:
+        education_section = ""
+    full_resume_text = contact_header + draft + education_section
+
     # Persist to PostgreSQL
     resume_version_id = ""
     try:
@@ -60,7 +108,7 @@ async def report_generator(state: ResumeState) -> ResumeState:
                 jd_text=state["job_description"],
                 company=state["company"],
                 role_title=state["role_title"],
-                resume_text=state["draft_resume"],
+                resume_text=full_resume_text,
                 ats_score=state["ats_score"],
                 optimization_report=optimization_report,
             )

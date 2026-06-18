@@ -19,10 +19,14 @@ TRUTHFULNESS RULES (non-negotiable):
 
 FORMAT RULES:
 - Plain text output only, no markdown, no # headers, no bullet symbols
-- Use these section labels exactly: SUMMARY | EXPERIENCE | PROJECTS | TECHNICAL SKILLS | EDUCATION
-- Keep total output under 600 words
+- Use these section labels exactly (one per line): SUMMARY | EXPERIENCE | PROJECTS | TECHNICAL SKILLS | EDUCATION
+- CRITICAL: Keep total output under 480 words — this must fit on ONE page
+- Be concise: experience bullets max 25 words each, project descriptions max 50 words each
 - Write experience bullets starting with strong action verbs
-- Quantify outcomes only if numbers exist in the source"""
+- Quantify outcomes only if numbers exist in the source
+- TECHNICAL SKILLS: group by category on one line each (e.g. "GenAI & LLM: X, Y, Z"). Never list a skill whose name is identical or near-identical to its category name alone — merge it into a related category
+- EDUCATION: always include if education data is provided in source chunks
+- Section order: SUMMARY → TECHNICAL SKILLS → EXPERIENCE → PROJECTS → EDUCATION"""
 
 USER_TEMPLATE = """TARGET ROLE: {role_title} at {company}
 ROLE TYPE: {role_type}

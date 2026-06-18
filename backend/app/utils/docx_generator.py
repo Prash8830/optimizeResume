@@ -1,32 +1,61 @@
 import io
 
 from docx import Document
-from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.shared import Pt, RGBColor
+
+SECTION_HEADERS = {"SUMMARY", "EXPERIENCE", "PROJECTS", "TECHNICAL SKILLS", "SKILLS", "EDUCATION"}
 
 
 def generate_docx(resume_text: str, role_title: str = "Resume") -> bytes:
-    """Convert plain-text resume to ATS-safe DOCX."""
     doc = Document()
-
-    # Remove default styles that confuse ATS
     _set_default_font(doc)
 
-    # Title
-    title = doc.add_heading(role_title, level=0)
-    title.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    _style_heading(title, size=16, bold=True)
-
     sections = _parse_sections(resume_text)
+
+    # ── HEADER ──────────────────────────────────────────────────────────────
+    header_lines = sections.pop("HEADER", [])
+    if header_lines:
+        name_line = next((l.strip() for l in header_lines if l.strip()), "")
+        contact_line = next((l.strip() for l in header_lines[1:] if l.strip()), "")
+        if name_line:
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(name_line)
+            run.font.size = Pt(18)
+            run.font.bold = True
+            run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x2e)
+        if contact_line:
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            run = p.add_run(contact_line)
+            run.font.size = Pt(9)
+            run.font.color.rgb = RGBColor(0x55, 0x55, 0x55)
+    else:
+        p = doc.add_paragraph()
+        run = p.add_run(role_title)
+        run.font.size = Pt(16)
+        run.font.bold = True
+        run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x2e)
+
+    # ── BODY SECTIONS ───────────────────────────────────────────────────────
     for section_name, lines in sections.items():
-        # Section header
-        heading = doc.add_heading(section_name, level=1)
-        _style_heading(heading, size=11, bold=True, uppercase=True)
+        if section_name == "OVERVIEW":
+            continue
+        heading = doc.add_heading(section_name.upper(), level=1)
+        _style_heading(heading)
 
         for line in lines:
-            if line.strip():
-                para = doc.add_paragraph(line.strip())
-                para.style.font.size = Pt(10)
+            stripped = line.strip()
+            if not stripped:
+                continue
+            para = doc.add_paragraph()
+            run = para.add_run(stripped)
+            run.font.size = Pt(9.5)
+            # Bold role/company lines in EXPERIENCE
+            if section_name == "EXPERIENCE" and " at " in stripped and not stripped[0].islower():
+                run.font.bold = True
+                run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x2e)
 
     buf = io.BytesIO()
     doc.save(buf)
@@ -34,38 +63,34 @@ def generate_docx(resume_text: str, role_title: str = "Resume") -> bytes:
 
 
 def _set_default_font(doc: Document) -> None:
-    from docx.oxml.ns import qn
     style = doc.styles["Normal"]
     style.font.name = "Arial"
     style.font.size = Pt(10)
 
 
-def _style_heading(heading, size: int, bold: bool = True, uppercase: bool = False) -> None:
+def _style_heading(heading) -> None:
     for run in heading.runs:
-        run.font.size = Pt(size)
-        run.font.bold = bold
+        run.font.size = Pt(10)
+        run.font.bold = True
         run.font.color.rgb = RGBColor(0x1a, 0x1a, 0x2e)
-        if uppercase:
-            run.text = run.text.upper()
 
 
 def _parse_sections(text: str) -> dict[str, list[str]]:
-    section_headers = ["SUMMARY", "EXPERIENCE", "PROJECTS", "TECHNICAL SKILLS", "SKILLS", "EDUCATION"]
+    ALL_HEADERS = SECTION_HEADERS | {"HEADER"}
     sections: dict[str, list[str]] = {}
-    current_section = "OVERVIEW"
-    current_lines: list[str] = []
+    current = "OVERVIEW"
+    lines: list[str] = []
 
     for line in text.split("\n"):
         upper = line.strip().upper()
-        if upper in section_headers:
-            if current_lines:
-                sections[current_section] = current_lines
-            current_section = upper
-            current_lines = []
+        if upper in ALL_HEADERS:
+            if lines or current != "OVERVIEW":
+                sections[current] = lines
+            current = upper
+            lines = []
         else:
-            current_lines.append(line)
+            lines.append(line)
 
-    if current_lines:
-        sections[current_section] = current_lines
-
+    if lines:
+        sections[current] = lines
     return sections

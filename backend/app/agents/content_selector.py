@@ -1,11 +1,11 @@
 from app.agents.state import ResumeState
 
-WORD_BUDGET = 580
+WORD_BUDGET = 450
 MIN_SCORE = 0.40
-MAX_PROJECTS = 4
+MAX_PROJECTS = 3
 MAX_SKILL_CATEGORIES = 6
-MAX_SKILLS_PER_CATEGORY = 5
-MAX_EXPERIENCE_BULLETS = 8
+MAX_SKILLS_PER_CATEGORY = 6
+MAX_EXPERIENCE_BULLETS = 6
 
 
 async def content_selector(state: ResumeState) -> ResumeState:

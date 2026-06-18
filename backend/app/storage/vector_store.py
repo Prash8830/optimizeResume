@@ -116,6 +116,25 @@ async def index_user_profile(user_id: str, profile_data) -> None:
         })
         ids.append(doc_id)
 
+    # Index education
+    for i, edu in enumerate(profile_data.education or []):
+        parts = [edu.degree, edu.institution]
+        if edu.year:
+            parts.append(edu.year)
+        if edu.relevant_coursework:
+            parts.append("Coursework: " + ", ".join(edu.relevant_coursework))
+        text = " | ".join(p for p in parts if p)
+        doc_id = f"edu_{i}"
+        documents.append(text)
+        embeddings.append(embed_text(text))
+        metadatas.append({
+            "type": "education",
+            "degree": edu.degree or "",
+            "institution": edu.institution or "",
+            "word_count": len(text.split()),
+        })
+        ids.append(doc_id)
+
     if documents:
         collection.add(documents=documents, embeddings=embeddings, metadatas=metadatas, ids=ids)
 
